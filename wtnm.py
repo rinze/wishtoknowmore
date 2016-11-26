@@ -331,6 +331,7 @@ class WTNM:
         except:
             # Probably a timeout. Return an empty list, will retrieve
             # everything later
+            print "Couldn't get data from api.pushshift.io"
             return []
 
     def _update_last_comment(self, last_comment):
