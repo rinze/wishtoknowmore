@@ -195,7 +195,7 @@ class WTNM:
 
                 m_body = """This is the summary for the links found in the
                             comments for [this original submission]({orig_permalink}). I
-                            inspected {n_comments} comments, of which {n_links} links were extracted. 
+                            inspected {n_comments} comments, from which {n_links} links were extracted. 
                             This below is a summary of all the links found in
                             the discussion thread.\n\n*****\n\n"""\
                          .format(orig_permalink = submission.permalink,
