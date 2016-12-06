@@ -139,17 +139,25 @@ class WTNM:
             self._update_last_comment("t1_" + thread['id'])
             return
 
-        response = comment.reply("""Thanks! I have registered your request and
-                                    it will appear in /r/{subreddit} shortly.
-                                    Please remember that, in order to process a thread,
-                                    I will wait 24 hours since its creation date. If the thread
-                                    you are requesting me to summarise is older than that, it will be
-                                    processed in the next batch."""\
-                                 .format(subreddit = self.__subreddit__))
+        # Try to reply, but have in mind that it is possible that the 
+        # thread has been locked from further commenting. In that case, 
+        # just assign a dummy value to rcode.
+        try:
+            response = comment.reply("""Thanks! I have registered your request and
+                                        it will appear in /r/{subreddit} shortly.
+                                        Please remember that, in order to process a thread,
+                                        I will wait 24 hours since its creation date. If the thread
+                                        you are requesting me to summarise is older than that, it will be
+                                        processed in the next batch."""\
+                                     .format(subreddit = self.__subreddit__))
+            rcode = "t1_" + response.id
+        except:
+            rcode = "no_reply"
+ 
         values = [thread['created_utc'], thread['link_created_utc'],
                   "t1_" + thread['id'], thread['author'],
                   #None, 
-                  "t1_" + response.id, 
+                  rcode, 
                   thread['link_id']]
         self._query("""INSERT INTO monitor (request_timestamp,
                                             thread_creation_timestamp,
@@ -189,7 +197,7 @@ class WTNM:
                 s_title = submission.title
                 if len(s_title) > 100:
                     s_title = s_title[:100]
-                m_title = "Links for \"{}\" from /r/{}".format(s_title, submission.subreddit)
+                m_title = "Links for \"{}\" from /r/{}".format(s_title.encode('utf8'), submission.subreddit)
                 if len(m_title) > 300:
                     m_title = m_title[:300]
 
@@ -237,7 +245,10 @@ class WTNM:
                 post_id = None
 
             # Reply to original request
-            request_comment.reply(reply_text)
+            try:
+                request_comment.reply(reply_text)
+            except:
+                print "Couldn't reply to comment"
 
             # Mark the thread as processed
             self._query("""INSERT INTO processed 
@@ -257,7 +268,7 @@ class WTNM:
         # 10 replies below the fold. Otherwise, those comments will be skipped.
         # Changes that a high-scored link is there are small. We can live with
         # that (I can, at least).
-        submission.replace_more_comments(limit = None, threshold = 10)
+        submission.replace_more_comments(limit = 100, threshold = 10)
         flat_comments = praw.helpers.flatten_tree(submission.comments)
         n_comments = len(flat_comments)
         links = dict()
@@ -265,19 +276,23 @@ class WTNM:
             # Process comments that have some link and have score greater
             # than one (that is, not only the submitter thought it was interesting).
             if comment.score > 1 and "<a href" in comment.body_html:
-                tree = etree.parse(StringIO(comment.body_html))
-                # Make an explicit copy of the list and delete the tree
-                # to avoid memory problems
-                l = list(tree.xpath('//a/@href'))
-                del tree
-                # Do not include references to other users or subreddits
-                l = [x for x in l if not x.startswith('/') and not x.startswith('#')]
-                if len(l) > 0: # don't do anything if there are no links left
-                    for url in l:
-                        if url not in links or links[url]['score'] < comment.score:
-                            links[url] = dict(score = comment.score, 
-                                              link = url,
-                                              permalink = comment.permalink)
+                try:
+                    tree = etree.parse(StringIO(comment.body_html))
+                    # Make an explicit copy of the list and delete the tree
+                    # to avoid memory problems
+                    l = list(tree.xpath('//a/@href'))
+                    del tree
+                    # Do not include references to other users or subreddits
+                    l = [x for x in l if not x.startswith('/') and not x.startswith('#')]
+                    if len(l) > 0: # don't do anything if there are no links left
+                        for url in l:
+                            if url not in links or links[url]['score'] < comment.score:
+                                links[url] = dict(score = comment.score, 
+                                                  link = url,
+                                                  permalink = comment.permalink)
+                except: 
+                    # Just go on to the next comment
+                    pass
 
         # Conver to list and sort by score (descending)
         links = links.values()
@@ -295,8 +310,12 @@ class WTNM:
             return
 
         original_request = self.r.get_info(thing_id = request['reply_with'])
-        comment.reply("""Thanks for your request! This thread is already stored for processing. [Here]({orig})
-                         is the original request""".format(orig = original_request.permalink))
+        try:
+            comment.reply("""Thanks for your request! This thread is already stored for processing. [Here]({orig})
+                             is the original request""".format(orig = original_request.permalink))
+        except:
+            print "Couldn't reply to comment"
+
         self._update_last_comment("t1_" + request['id'])
 
     def reply_already_processed(self, request):
@@ -309,8 +328,11 @@ class WTNM:
             return
 
         original_request = self.r.get_info(thing_id = request['reply_with'])
-        comment.reply("""Thanks for your request! This thread has already been processed. [Here]({orig})
-                         is the final link compilation.""".format(orig = original_request.permalink))
+        try:
+            comment.reply("""Thanks for your request! This thread has already been processed. [Here]({orig})
+                             is the final link compilation.""".format(orig = original_request.permalink))
+        except:
+            print "Couldn't reply to comment"
         self._update_last_comment("t1_" + request['id'])
 
 
