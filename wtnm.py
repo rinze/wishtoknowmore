@@ -301,12 +301,12 @@ class WTNM:
         return n_comments, links
 
     def reply_already_queued(self, request):
-        print "Replying to request {id} by {user}".format(id = thread['id'],
-                                                          user = thread['author'])
+        print "Replying to request {id} by {user}".format(id = request['id'],
+                                                          user = request['author'])
         comment = self.r.get_info(thing_id = "t1_" + request['id'])
 
         if comment.banned_by is not None or comment.author is None:
-            self._update_last_comment("t1_" + thread['id'])
+            self._update_last_comment("t1_" + request['id'])
             return
 
         original_request = self.r.get_info(thing_id = request['reply_with'])
@@ -319,12 +319,12 @@ class WTNM:
         self._update_last_comment("t1_" + request['id'])
 
     def reply_already_processed(self, request):
-        print "Replying to request {id} by {user}".format(id = thread['id'],
-                                                          user = thread['author'])
+        print "Replying to request {id} by {user}".format(id = request['id'],
+                                                          user = request['author'])
         comment = self.r.get_info(thing_id = "t1_" + request['id'])
 
         if comment.banned_by is not None or comment.author is None:
-            self._update_last_comment("t1_" + thread['id'])
+            self._update_last_comment("t1_" + request['id'])
             return
 
         original_request = self.r.get_info(thing_id = request['reply_with'])
