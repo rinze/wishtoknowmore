@@ -315,6 +315,8 @@ class WTNM:
                              is the original request""".format(orig = original_request.permalink))
         except:
             print "Couldn't reply to comment"
+            self._update_last_comment("t1_" + request['id'])
+            return
 
         self._update_last_comment("t1_" + request['id'])
 
@@ -333,6 +335,9 @@ class WTNM:
                              is the final link compilation.""".format(orig = original_request.permalink))
         except:
             print "Couldn't reply to comment"
+            self._update_last_comment("t1_" + request['id'])
+            return
+
         self._update_last_comment("t1_" + request['id'])
 
 
@@ -349,7 +354,9 @@ class WTNM:
         
         try:
             req = requests.request("GET", url)
-            return json.loads(req.text)['data'] # don't need metadata
+            # Duplicate last_comment check
+            j = json.loads(req.text)['data']
+            return [x for x in j if x['id'] > last_comment]
         except:
             # Probably a timeout. Return an empty list, will retrieve
             # everything later
